@@ -1,0 +1,72 @@
+﻿@inject NavigationManager NavigationManager
+@inject IJSRuntime JS
+@page "/"
+
+<h1>Chat app!</h1>
+
+@foreach (var user in users)
+{
+    <p>@user has connected!</p>
+}
+
+@code{
+    private HubConnection hubConnection;
+    public List<string> users = new List<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (hubConnection != null)
+            return;
+
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/WebRtc"))
+            .Build();
+
+        await hubConnection.StartAsync();
+
+        await hubConnection.SendAsync("OnNewUserAsync", "testname");
+
+        hubConnection.On<string, string>("OnNewUser", async (username, connectionid) =>
+        {
+            users.Add(username);
+            StateHasChanged();
+
+            await JS.InvokeVoidAsync("CreateRTCConnection", connectionid);
+        });
+
+        hubConnection.On<string, string>("OnOffer", async (id, localDescription) =>
+        {
+            await JS.InvokeVoidAsync("onOffer", id, localDescription);
+        });
+
+        hubConnection.On<string, string>("OnCandidate", async (id, candidate) =>
+        {
+            await JS.InvokeVoidAsync("addCandidate", id, candidate);
+        });
+
+        hubConnection.On<string, string>("OnAnswer", async (id, localDesciption) =>
+        {
+            await JS.InvokeVoidAsync("setRemoteDescription", id, localDesciption);
+        });
+
+        await JS.InvokeVoidAsync("SetDotnetHelper", DotNetObjectReference.Create(this));
+    }
+
+    [JSInvokable]
+    public async Task SendCandidateAsync(string id, string candidate)
+    {
+        await hubConnection.SendAsync("OnCandidateAsync", id, candidate);
+    }
+
+    [JSInvokable]
+    public async Task SendOfferAsync(string id, string localDescription)
+    {
+        await hubConnection.SendAsync("OnOfferAsync", id, localDescription);
+    }
+
+    [JSInvokable]
+    public async Task SendAnswerAsync(string id, string description)
+    {
+        await hubConnection.SendAsync("OnAnswerAsync", id, description);
+    }
+}
