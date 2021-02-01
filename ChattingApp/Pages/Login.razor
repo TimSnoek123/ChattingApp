@@ -1,0 +1,26 @@
+﻿<div class="d-flex justify-content-center align-items-center text-center" style="height: 80vh">
+    <EditForm Model="loginUser" OnSubmit="Login">
+        <h3>Login</h3>
+        <div class="form-group">
+            <InputText class="form-control" @bind-Value="loginUser.UserName" type="email" placeholder="Email"></InputText>
+        </div>
+        <div class="form-group">
+            <InputText class="form-control" @bind-Value="loginUser.Password" placeholder="Password" type="password"></InputText>
+        </div>
+    </EditForm>
+</div>
+@code {
+
+    public class LoginUser
+    {
+        public string UserName { get; set; }
+        public string Password { get; set; }
+    }
+
+    public LoginUser loginUser = new LoginUser();
+
+    public void DoLogin()
+    {
+
+    }
+}

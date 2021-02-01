@@ -1,4 +1,3 @@
-using ChattingApp.Data;
 using ChattingApp.Hubs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Components;
@@ -41,7 +40,6 @@ namespace ChattingApp
             services.AddRazorPages();
             services.AddSignalR();
             services.AddServerSideBlazor();
-            services.AddSingleton<WeatherForecastService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

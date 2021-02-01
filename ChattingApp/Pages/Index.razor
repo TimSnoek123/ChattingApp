@@ -1,17 +1,67 @@
 ﻿@inject NavigationManager NavigationManager
 @inject IJSRuntime JS
+@using ChattingApp.Hubs;
+@implements IAsyncDisposable
 @page "/"
+@attribute [Authorize]
 
-<h1>Chat app!</h1>
+<h1>Contacts</h1>
 
-@foreach (var user in users)
+@switch (hubConnection.State)
 {
-    <p>@user has connected!</p>
+    case HubConnectionState.Connected:
+        <div class="oi oi-circle-check" style="color:green"> Connected</div>
+        break;
+    case HubConnectionState.Reconnecting:
+        <div class="oi oi-circle-x" style="color:orange"> Reconnecting</div>
+        break;
+    case HubConnectionState.Connecting:
+        <div class="oi oi-circle-x" style="color:orange"> Connecting</div>
+        break;
+    default:
+        <div class="oi oi-circle-x" style="color:red"> Disconnected</div>
+        break;
 }
+
+<ul class="list-group">
+    @foreach (var user in WebRtcHub.ConnectedClients)
+    {
+        @if (user.Key != hubConnection.ConnectionId)
+        {
+            <li @onclick="@(async () => await JS.InvokeVoidAsync("CreateRTCConnection", user.Key))" class="list-group-item list-group-item-action">@user.Value</li>
+        }
+    }
+</ul>
+
+@*Move this to mainlayout*@
+<Modal @ref="modal">
+    <Title>Called by user</Title>
+    <Body>
+        <p>Click to accept call!</p>
+        <button class="btn btn-primary" @onclick="() => AcceptCall()">Accept call</button>
+        <button class="btn btn-danger" @onclick="() => DeclineCall()">Decline call</button>
+    </Body>
+</Modal>
 
 @code{
     private HubConnection hubConnection;
-    public List<string> users = new List<string>();
+    public Modal modal = new Modal();
+
+    //Make model for this
+    private string incomingId;
+    private string incomingLocalDescription;
+
+
+    public async void AcceptCall()
+    {
+        await JS.InvokeVoidAsync("onOffer", incomingId, incomingLocalDescription);
+        modal.Close();
+    }
+
+    public void DeclineCall()
+    {
+        modal.Close();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -26,18 +76,18 @@
 
         await hubConnection.SendAsync("OnNewUserAsync", "testname");
 
-        hubConnection.On<string, string>("OnNewUser", async (username, connectionid) =>
+        hubConnection.On<string, string>("OnOffer", (id, localDescription) =>
         {
-            users.Add(username);
-            StateHasChanged();
+            this.incomingId = id;
+            this.incomingLocalDescription = localDescription;
 
-            await JS.InvokeVoidAsync("CreateRTCConnection", connectionid);
+            Console.WriteLine("Opening modal");
+            if (!modal.Opened)
+                modal.Open();
         });
 
-        hubConnection.On<string, string>("OnOffer", async (id, localDescription) =>
-        {
-            await JS.InvokeVoidAsync("onOffer", id, localDescription);
-        });
+        hubConnection.On("OnDisconnected", this.StateHasChanged);
+        hubConnection.On("OnNewUser", this.StateHasChanged);
 
         hubConnection.On<string, string>("OnCandidate", async (id, candidate) =>
         {
@@ -48,6 +98,7 @@
         {
             await JS.InvokeVoidAsync("setRemoteDescription", id, localDesciption);
         });
+
 
         await JS.InvokeVoidAsync("SetDotnetHelper", DotNetObjectReference.Create(this));
     }
@@ -68,5 +119,10 @@
     public async Task SendAnswerAsync(string id, string description)
     {
         await hubConnection.SendAsync("OnAnswerAsync", id, description);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await hubConnection.DisposeAsync();
     }
 }
