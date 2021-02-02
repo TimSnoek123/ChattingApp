@@ -3,7 +3,7 @@
 @using ChattingApp.Hubs;
 @implements IAsyncDisposable
 @page "/"
-@attribute [Authorize]
+@*@attribute [Authorize]*@
 
 <h1>Contacts</h1>
 
@@ -28,24 +28,23 @@
     {
         @if (user.Key != hubConnection.ConnectionId)
         {
-            <li @onclick="@(async () => await JS.InvokeVoidAsync("CreateRTCConnection", user.Key))" class="list-group-item list-group-item-action">@user.Value</li>
+           <UserListItem HubConnection="@hubConnection" blazorId="@user.Key" userName="@user.Value"></UserListItem>
         }
     }
 </ul>
 
-@*Move this to mainlayout*@
-<Modal @ref="modal">
-    <Title>Called by user</Title>
+<Toast Sound="Sounds/GettingCalled.mp3" Styling="position: absolute; bottom: 0; right: 0;" @ref="gettingCalledToast">
+    <Title>Called by user!</Title>
     <Body>
         <p>Click to accept call!</p>
-        <button class="btn btn-primary" @onclick="() => AcceptCall()">Accept call</button>
-        <button class="btn btn-danger" @onclick="() => DeclineCall()">Decline call</button>
+        <button class="btn btn-primary" @onclick="AcceptCall">Accept call</button>
+        <button class="btn btn-danger" @onclick="DeclineCall">Decline call</button>
     </Body>
-</Modal>
+</Toast>
 
 @code{
     private HubConnection hubConnection;
-    public Modal modal = new Modal();
+    public Toast gettingCalledToast = new Toast();
 
     //Make model for this
     private string incomingId;
@@ -55,12 +54,16 @@
     public async void AcceptCall()
     {
         await JS.InvokeVoidAsync("onOffer", incomingId, incomingLocalDescription);
-        modal.Close();
+        await hubConnection.SendAsync("OnAcceptCallAsync", incomingId);
+        gettingCalledToast.Close();
     }
 
-    public void DeclineCall()
+    public async Task DeclineCall()
     {
-        modal.Close();
+        await hubConnection.SendAsync("OnRejectCallAsync", incomingId);
+        gettingCalledToast.Close();
+        incomingId = null;
+        incomingLocalDescription = null;
     }
 
     protected override async Task OnInitializedAsync()
@@ -82,8 +85,7 @@
             this.incomingLocalDescription = localDescription;
 
             Console.WriteLine("Opening modal");
-            if (!modal.Opened)
-                modal.Open();
+            gettingCalledToast.Open();
         });
 
         hubConnection.On("OnDisconnected", this.StateHasChanged);
@@ -100,25 +102,27 @@
         });
 
 
+
+
         await JS.InvokeVoidAsync("SetDotnetHelper", DotNetObjectReference.Create(this));
     }
 
     [JSInvokable]
     public async Task SendCandidateAsync(string id, string candidate)
     {
-        await hubConnection.SendAsync("OnCandidateAsync", id, candidate);
+        await hubConnection.SendAsync("OnCandidateAsync", hubConnection.ConnectionId, candidate);
     }
 
     [JSInvokable]
     public async Task SendOfferAsync(string id, string localDescription)
     {
-        await hubConnection.SendAsync("OnOfferAsync", id, localDescription);
+        await hubConnection.SendAsync("OnOfferAsync", hubConnection.ConnectionId, localDescription);
     }
 
     [JSInvokable]
     public async Task SendAnswerAsync(string id, string description)
     {
-        await hubConnection.SendAsync("OnAnswerAsync", id, description);
+        await hubConnection.SendAsync("OnAnswerAsync", hubConnection.ConnectionId, description);
     }
 
     public async ValueTask DisposeAsync()

@@ -1,5 +1,5 @@
 ﻿<div class="d-flex justify-content-center align-items-center text-center" style="height: 80vh">
-    <EditForm Model="loginUser" OnSubmit="Login">
+    <EditForm Model="loginUser" OnSubmit="DoLogin">
         <h3>Login</h3>
         <div class="form-group">
             <InputText class="form-control" @bind-Value="loginUser.UserName" type="email" placeholder="Email"></InputText>

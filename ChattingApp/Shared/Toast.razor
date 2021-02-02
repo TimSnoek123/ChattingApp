@@ -1,0 +1,46 @@
+﻿<div style="@Styling min-height: 20vh; min-width: 25vw" class="toast @currentState" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header">
+        <img class="rounded mr-2" />
+        <strong class="mr-auto">@Title</strong>
+    </div>
+    <div class="toast-body">@Body</div>
+
+    @if (currentState == "show" && !String.IsNullOrEmpty(Sound))
+    {
+        <audio class="hide" autoplay><source src="@Sound" type="audio/mpeg"/></audio>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public RenderFragment Title { get; set; }
+
+    [Parameter]
+    public RenderFragment Body { get; set; }
+
+    [Parameter]
+    public string Styling { get; set; }
+
+    [Parameter]
+    public string Sound { get; set; }
+
+    private string currentState = "hide";
+
+    public void Close()
+    {
+        if (currentState != "hide")
+        {
+            currentState = "hide";
+            StateHasChanged();
+        }
+    }
+
+    public void Open()
+    {
+        if (currentState != "show")
+        {
+            currentState = "show";
+            StateHasChanged();
+        }
+    }
+}

@@ -41,5 +41,15 @@ namespace ChattingApp.Hubs
         {
             await Clients.Others.SendAsync("OnAnswer", id, localDescription);
         }
+
+        public async Task OnRejectCallAsync(string fromId)
+        {
+            await Clients.Client(fromId).SendAsync("OnRejectCall", Context.ConnectionId);
+        }
+
+        public async Task OnAcceptCallAsync(string fromId)
+        {
+            await Clients.Client(fromId).SendAsync("OnAcceptCall", Context.ConnectionId);
+        }
     }
 }

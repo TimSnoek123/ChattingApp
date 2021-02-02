@@ -1,0 +1,60 @@
+﻿@inject IJSRuntime JS
+
+<li @onclick="@CallUserAsync" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+    @userName
+    @switch (callState)
+    {
+        case CallState.NotCalling:
+            break;
+        case CallState.Calling:
+            <span class="oi oi-phone"> Calling user...</span>
+            break;
+        case CallState.Rejected:
+            <span class="oi oi-phone" style="color:red"> Call rejected</span>
+            break;
+        case CallState.Accepted:
+            <span class="oi oi-phone" style="color:green"> Call accepted</span>
+            break;
+    }
+</li>
+@code {
+    [Parameter]
+    public string blazorId { get; set; }
+
+    [Parameter]
+    public string userName { get; set; }
+
+    [Parameter]
+    public HubConnection HubConnection { get; set; }
+
+    private CallState callState;
+
+    private enum CallState
+    {
+        NotCalling,
+        Calling,
+        Accepted,
+        Rejected
+    }
+
+    private async Task CallUserAsync()
+    {
+        await JS.InvokeVoidAsync("CreateRTCConnection", blazorId);
+        //Having these paremeters in a big list is probably kind of wasteful....
+        callState = CallState.Calling;
+        //We probably want to do this in a better way, but for now it works fine
+        HubConnection.On<string>("OnRejectCall", (rejecterId) =>
+        {
+            callState = CallState.Rejected;
+            HubConnection.Remove("OnRejectCall");
+            StateHasChanged();
+        });
+        //Same here as the comment above
+        HubConnection.On<string>("OnAcceptCall", (rejecterId) =>
+        {
+            callState = CallState.Accepted;
+            HubConnection.Remove("OnAcceptCall");
+            StateHasChanged();
+        });
+    }
+}
