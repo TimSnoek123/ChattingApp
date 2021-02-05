@@ -42,6 +42,8 @@
     </Body>
 </Toast>
 
+<video autoplay muted id="remote-video" ></video>
+
 @code{
     private HubConnection hubConnection;
     public Toast gettingCalledToast = new Toast();
@@ -70,6 +72,8 @@
     {
         if (hubConnection != null)
             return;
+
+
 
         hubConnection = new HubConnectionBuilder()
             .WithUrl(NavigationManager.ToAbsoluteUri("/WebRtc"))
@@ -101,11 +105,9 @@
             await JS.InvokeVoidAsync("setRemoteDescription", id, localDesciption);
         });
 
-
-
-
         await JS.InvokeVoidAsync("SetDotnetHelper", DotNetObjectReference.Create(this));
     }
+
 
     [JSInvokable]
     public async Task SendCandidateAsync(string id, string candidate)

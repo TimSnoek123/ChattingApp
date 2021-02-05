@@ -9,21 +9,21 @@ namespace ChattingApp.Hubs
     public class WebRtcHub : Hub
     {
         private static readonly Dictionary<string, string> connectedClients = new Dictionary<string, string>();
-        public static Dictionary<string, string> ConnectedClients = connectedClients;
+        public static Dictionary<string, string> ConnectedClients => connectedClients;
 
         public override async Task OnDisconnectedAsync(Exception exception)
         {
             await Clients.Others.SendAsync("OnDisconnected");
 
-            if (ConnectedClients.ContainsKey(Context.ConnectionId))
-                ConnectedClients.Remove(Context.ConnectionId);
+            if (connectedClients.ContainsKey(Context.ConnectionId))
+                connectedClients.Remove(Context.ConnectionId);
 
             await base.OnDisconnectedAsync(exception);
         }
 
         public async Task OnNewUserAsync(string username)
         {
-            ConnectedClients.Add(Context.ConnectionId, username);
+            connectedClients.Add(Context.ConnectionId, username);
             await Clients.Others.SendAsync("OnNewUser");
         }
 
